@@ -56,12 +56,19 @@ class eightPuzzleSolver():
     def performValidMoves(self, valid_moves, i, j):
         for move in valid_moves:
             new_puzzle = self.moveBlankTile(move, i, j)
+
+            # Check if the state has already been checked
+            if (new_puzzle in self.visited_states) or new_puzzle in self.states_to_visit:
+                continue
+            else:
+                self.states_to_visit.append(new_puzzle)
+
+        print(self.states_to_visit)
+
             
     def moveBlankTile(self, move, i, j):
         # Make a copy of the current puzzle so we don't overwrite it
         temp_current_state = copy.copy(self.currnet_node_state)
-        
-        print(move)
         
         if move == "Up":
             temp_current_state[j-1, i], temp_current_state[j, i] = temp_current_state[j, i], temp_current_state[j-1,i]
@@ -72,23 +79,7 @@ class eightPuzzleSolver():
         elif move == "Right":
             temp_current_state[j, i+1], temp_current_state[j, i] = temp_current_state[j, i], temp_current_state[j, i+1]
             
-        print(temp_current_state)
-    
-    # Moves blank space left
-    def ActionMoveLeft(self):
-        pass
-    
-    # Moves blank space right
-    def ActionMoveRight(self):
-        pass
-    
-    # Moves blank space up
-    def ActionMoveUp(self):
-        pass
-    
-    # Moves blank space down
-    def ActionMoveDown(self):
-        pass
+        return temp_current_state
     
     # Backtraces the state path once a path to the goal is found
     def generatePath(self):
@@ -102,6 +93,7 @@ class eightPuzzleSolver():
     def solvePuzzle(self, puzzle):
         # print(puzzle)
         self.currnet_node_state = np.array(puzzle)
+        self.visited_states.append(self.currnet_node_state)
         i, j = self.getCurrentNodeState()
         
         valid_moves = self.determineValidMoves(i, j)
@@ -116,4 +108,29 @@ if __name__ == "__main__":
               [4, 3, 7],
               [2, 5, 8]]
     
-    solver.solvePuzzle(puzzle)
+    # solver.solvePuzzle(puzzle)
+
+    seen_puzzles = []
+
+    np_puzzle = np.array(puzzle)
+
+    puzzle_as_string = ""
+    for num in np.nditer(np_puzzle):
+        puzzle_as_string += str(num)
+
+    seen_puzzles.append(puzzle_as_string)
+
+    seen_puzzles.append(puzzle_as_string)
+
+    new_puzzle = np.array([[1, 6, 0],
+              [4, 3, 7],
+              [2, 5, 8]])
+    
+    new_puzzle_as_string = ""
+    for num in np.nditer(new_puzzle):
+        new_puzzle_as_string += str(num)
+
+    if new_puzzle_as_string in seen_puzzles:
+        print("True")
+    else:
+        print("False")
