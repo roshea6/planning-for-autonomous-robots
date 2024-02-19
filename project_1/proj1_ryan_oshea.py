@@ -3,7 +3,7 @@ import copy
 
 class eightPuzzleSolver():
     def __init__(self):
-        self.currnet_node_state = None
+        self.current_node_state = {}
         
         self.goal_state = [[1, 2, 3],
                         [4, 5, 6],
@@ -25,11 +25,10 @@ class eightPuzzleSolver():
         
         self.parent_node_index = 0
         
-        # self.potential_moves = ["Up", "Down", "Left", "Right"]
-        
     # Get the unique string made of the elements of the puzzle and return it as a string
     def getNodeID(self, puzzle):
         puzzle_as_string = ""
+        # Iterate through the values in the numpy array in order
         for num in np.nditer(puzzle):
             puzzle_as_string += str(num)
             
@@ -37,12 +36,17 @@ class eightPuzzleSolver():
         
     # Gets the current location of the blank space as an (i, j) pair
     def getCurrentNodeState(self):
-        print(self.currnet_node_state)
-        empy_space_loc = np.where(self.currnet_node_state == 0)
+        # print(self.current_node_state)
+        
+        # Extract the puzzle from the current node state dict
+        puzzle = self.current_node_state["puzzle_state"]
+        
+        # Get the location of the blank tile (where the value is 0)
+        empy_space_loc = np.where(puzzle == 0)
         i = empy_space_loc[1][0]
         j = empy_space_loc[0][0]
         
-        print("i, j = ({}, {})".format(i, j))
+        # print("i, j = ({}, {})".format(i, j))
         return i, j
     
     # Determine the valid moves for a given puzzle state
@@ -86,17 +90,22 @@ class eightPuzzleSolver():
                 self.visited_node_configs.append(puzzle_string)
                 puzzle_node = {"parent_node": self.parent_node_index, "node_index": self.node_index, "puzzle_state": new_puzzle}
                 
+                # Add the new puzzle node to the end of the queue
                 self.states_to_visit.append(puzzle_node)
                 
                 self.node_index += 1
 
-        print(self.states_to_visit)
+        # print(self.states_to_visit)
+        # print(self.visited_node_configs)
+        
+        return goal_found
 
             
     def moveBlankTile(self, move, i, j):
         # Make a copy of the current puzzle so we don't overwrite it
-        temp_current_state = copy.copy(self.currnet_node_state)
+        temp_current_state = copy.copy(self.current_node_state["puzzle_state"])
         
+        # Kind of want to make this a switch statement but don't want to make it dependent on python>3.10
         if move == "Up":
             temp_current_state[j-1, i], temp_current_state[j, i] = temp_current_state[j, i], temp_current_state[j-1,i]
         elif move == "Down":
@@ -119,13 +128,41 @@ class eightPuzzleSolver():
     # Main driver function for solving the puzzle for a given configuration
     def solvePuzzle(self, puzzle):
         # print(puzzle)
-        self.currnet_node_state = np.array(puzzle)
-        self.visited_states.append(self.currnet_node_state)
-        self.node_index += 1
-        i, j = self.getCurrentNodeState()
+        self.current_node_state = {"parent_node": self.parent_node_index, "node_index": self.node_index, "puzzle_state": np.array(puzzle)}
         
-        valid_moves = self.determineValidMoves(i, j)
-        self.performValidMoves(valid_moves, i, j)
+        # Append the starting state to both the states to visit and the config tracking list
+        self.states_to_visit.append(self.current_node_state)
+        self.visited_node_configs.append(self.getNodeID(self.current_node_state["puzzle_state"]))
+        
+        self.node_index += 1
+        
+        while len(self.states_to_visit) > 0:
+        
+            # Get the next node to expand from front of the queue
+            self.current_node_state = self.states_to_visit.pop(0)
+            
+            self.parent_node_index = self.current_node_state["node_index"]
+        
+            # Find the location of the blank tile as an i, j array index
+            i, j = self.getCurrentNodeState()
+            
+            # Determine all valid moves, a list of directions, given the location of the blank tile
+            valid_moves = self.determineValidMoves(i, j)
+            
+            # Perform all valid moves and see if any of them put the puzzle into the desired goal state
+            goal_found = self.performValidMoves(valid_moves, i, j)
+            
+            # Add the current node to the list of fully checked nodes
+            self.visited_states.append(self.current_node_state)
+            
+            # If we've found the goal break out of the loop
+            if goal_found:
+                print(self.current_node_state)
+                break
+            
+        # TODO: Add calls to generate the path via backtracing from the goal node using parent node IDs then write all that to files
+        
+        
         
         
     
@@ -135,5 +172,9 @@ if __name__ == "__main__":
     puzzle = [[1, 0, 6],
               [4, 3, 7],
               [2, 5, 8]]
+    
+    # puzzle = [[1, 2, 3],
+    #           [4, 0, 6],
+    #           [7, 5, 8]]
     
     solver.solvePuzzle(puzzle)
