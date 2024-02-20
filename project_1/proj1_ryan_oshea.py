@@ -78,13 +78,14 @@ class eightPuzzleSolver():
             
             puzzle_string = self.getNodeID(new_puzzle)
             
-            # TODO: Check if the new puzzle is the goal puzzle so we can stop search and backtrace. Set goal flag so we return true
+            # Check if the new puzzle is the goal puzzle so we can stop search and backtrace. Set goal flag so we return true
             if puzzle_string == self.goal_state_string:
                 goal_found = True
                 print("PUZZLE SOLVED!")
                 print(new_puzzle)
 
             # Check if the state has already been checked
+            # TODO: This might be causing the issue where we don't always find a solution
             if puzzle_string in self.visited_node_configs:
                 continue
             else:
@@ -105,7 +106,7 @@ class eightPuzzleSolver():
         
         return goal_found
 
-            
+    # Given the move type and the location of the tile, a new puzzle state is created with the blank tile being swapped with another
     def moveBlankTile(self, move, i, j):
         # Make a copy of the current puzzle so we don't overwrite it
         temp_current_state = copy.copy(self.current_node_state["puzzle_state"])
@@ -153,8 +154,29 @@ class eightPuzzleSolver():
         
     
     # Writes the finals nodes visited, node info, and path taken to files
-    def writeFiles(self):
-        pass
+    def writeFiles(self, node_id_path):
+        # Loop through the visited states first and write them to the file
+        # Save the puzzles in the proper format so they can be added to the file for all explored states
+        saved_visited_states = []
+        node_id_list = []
+        parent_id_list = []
+        
+        nodes_info_file = open("NodesInfo.txt", "w")
+        nodes_info_file.write("Node_index \t Parent_Node_index \t Node")
+        
+        nodes_file = open("Nodes.txt", "w")
+        
+        for puzzle_state in self.visited_states:
+            # saved_visited_states.append(puzzle_state["puzzle_state"])
+            # node_id_list.append(puzzle_state["node_index"])
+            # parent_id_list.append(puzzle_state["parent_node"])
+            puzzle = puzzle_state["puzzle_state"]
+            # TODO: Rearrange the puzzle so it's in column order
+            fixed_puzzle = []
+            
+            node_id = puzzle_state["node_index"]
+            parent_node = puzzle_state["parent_node"]
+            # nodes_file.write()
     
     # Main driver function for solving the puzzle for a given configuration
     def solvePuzzle(self, puzzle):
@@ -193,6 +215,8 @@ class eightPuzzleSolver():
         final_node = self.states_to_visit[-1]
         
         node_id_path = self.generatePath(final_node)
+        
+        self.writeFiles(node_id_path)
             
         # TODO: Add calls to generate the path via backtracing from the goal node using parent node IDs then write all that to files
         
