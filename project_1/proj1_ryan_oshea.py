@@ -81,6 +81,8 @@ class eightPuzzleSolver():
             # TODO: Check if the new puzzle is the goal puzzle so we can stop search and backtrace. Set goal flag so we return true
             if puzzle_string == self.goal_state_string:
                 goal_found = True
+                print("PUZZLE SOLVED!")
+                print(new_puzzle)
 
             # Check if the state has already been checked
             if puzzle_string in self.visited_node_configs:
@@ -94,6 +96,9 @@ class eightPuzzleSolver():
                 self.states_to_visit.append(puzzle_node)
                 
                 self.node_index += 1
+                
+            if goal_found:
+                break
 
         # print(self.states_to_visit)
         # print(self.visited_node_configs)
@@ -118,8 +123,34 @@ class eightPuzzleSolver():
         return temp_current_state
     
     # Backtraces the state path once a path to the goal is found
-    def generatePath(self):
-        pass
+    def generatePath(self, node):
+        node_path = []
+        # Append the final node to the path and start from there
+        node_path.append(node)
+
+        parent_id = node["parent_node"]
+        
+        # Loop through parent nodes until we get to the starting node of 0
+        while not (parent_id == 0):
+            # Grab the parent node by its index ID from the list of visited puzzle states
+            parent_node = self.visited_states[parent_id]
+            
+            # Append the parent node to the path
+            node_path.append(parent_node)
+            
+            # Update the parent ID to go to next with the parent node of this new node
+            parent_id = parent_node["parent_node"]
+            
+        # Finally append the starting node on since it will be the common start for all paths
+        node_path.append(self.visited_states[0])
+        
+        # print(node_path)    
+        # Reverse the path and return it
+        node_path.reverse()
+        # print(node_path)
+        
+        return node_path
+        
     
     # Writes the finals nodes visited, node info, and path taken to files
     def writeFiles(self):
@@ -157,8 +188,11 @@ class eightPuzzleSolver():
             
             # If we've found the goal break out of the loop
             if goal_found:
-                print(self.current_node_state)
                 break
+            
+        final_node = self.states_to_visit[-1]
+        
+        node_id_path = self.generatePath(final_node)
             
         # TODO: Add calls to generate the path via backtracing from the goal node using parent node IDs then write all that to files
         
@@ -169,12 +203,12 @@ class eightPuzzleSolver():
 if __name__ == "__main__":
     solver = eightPuzzleSolver()
     
-    puzzle = [[1, 0, 6],
-              [4, 3, 7],
-              [2, 5, 8]]
+    # puzzle = [[1, 0, 6],
+    #           [4, 3, 7],
+    #           [2, 5, 8]]
     
-    # puzzle = [[1, 2, 3],
-    #           [4, 0, 6],
-    #           [7, 5, 8]]
+    puzzle = [[1, 2, 3],
+              [4, 0, 6],
+              [7, 5, 8]]
     
     solver.solvePuzzle(puzzle)
