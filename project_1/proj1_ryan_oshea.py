@@ -2,12 +2,12 @@ import numpy as np
 import copy
 
 class eightPuzzleSolver():
-    def __init__(self):
+    def __init__(self, goal_state = [[1, 2, 3],
+                        [4, 5, 6],
+                        [7, 8, 0]]):
         self.current_node_state = {}
         
-        self.goal_state = [[1, 2, 3],
-                        [4, 5, 6],
-                        [7, 8, 0]]
+        self.goal_state = goal_state
         
         # Turn goal state into a string for easier comparisons
         self.goal_state_string = self.getNodeID(np.array(self.goal_state))
@@ -85,7 +85,6 @@ class eightPuzzleSolver():
                 print(new_puzzle)
 
             # Check if the state has already been checked
-            # TODO: This might be causing the issue where we don't always find a solution
             if puzzle_string in self.visited_node_configs:
                 continue
             else:
@@ -101,8 +100,6 @@ class eightPuzzleSolver():
             if goal_found:
                 break
 
-        # print(self.states_to_visit)
-        # print(self.visited_node_configs)
         
         return goal_found
 
@@ -157,9 +154,6 @@ class eightPuzzleSolver():
     def writeFiles(self, node_id_path):
         # Loop through the visited states first and write them to the file
         # Save the puzzles in the proper format so they can be added to the file for all explored states
-        saved_visited_states = []
-        node_id_list = []
-        parent_id_list = []
         
         nodes_info_file = open("NodesInfo.txt", "w")
         nodes_info_file.write("Node_index \t Parent_Node_index \t Node \n")
@@ -190,7 +184,7 @@ class eightPuzzleSolver():
             
             nodes_info_file.write(node_info)
             
-        # TODO: Write the rest of the nodes info states from states to visit list
+        # Write the rest of the nodes info states from states to visit list
         for puzzle_state in self.states_to_visit:
             # Grab the puzzle array from the dictionary
             puzzle = puzzle_state["puzzle_state"]
@@ -265,28 +259,44 @@ class eightPuzzleSolver():
             # If we've found the goal break out of the loop
             if goal_found:
                 break
-            
+        
+        # If there's nothing in states to visit then we went through all possible iterations and could not find a solution
+        if len(self.states_to_visit) == 0:
+            print("PUZZLE CONFIGURATION WAS NOT SOLVABLE. {} ITERATIONS CHECKED".format(len(self.visited_states)))
+            exit()
+        
+        # Grab the final node from the states to visit list since it will be the goal state
         final_node = self.states_to_visit[-1]
         
+        # Back trace from the final node to the start node
         node_id_path = self.generatePath(final_node)
         
+        print("Final Path: {}".format(node_id_path))
+        
+        # Write the final node files
         self.writeFiles(node_id_path)
-            
-        # TODO: Add calls to generate the path via backtracing from the goal node using parent node IDs then write all that to files
-        
-        
         
         
     
 if __name__ == "__main__":
-    solver = eightPuzzleSolver()
+    # Define your goal state as a 3x3 array
+    goal_state = [[1, 2, 3],
+                [4, 5, 6],
+                [7, 8, 0]]
     
-    # puzzle = [[1, 0, 6],
-    #           [4, 3, 7],
-    #           [2, 5, 8]]
-    
+    # Define the initial state for the puzzle
+    # IMPORTANT: There are unsolvable configurations. If an unsolvable configuration is pass it the solver will run for quite a while before printing out that the puzzle is unsolvable
+    # Example solvable puzzle example found online
     puzzle = [[1, 2, 3],
-              [4, 0, 6],
-              [7, 5, 8]]
+              [4, 0, 7],
+              [6, 8, 5]]
     
+    challenging_puzzle = [[1, 3, 2],
+                        [0, 4, 6],
+                        [7, 8, 5]]
+    
+    # Create the solver object and pass in the desired goal state
+    solver = eightPuzzleSolver(goal_state=goal_state)
+    
+    # Solve for a given starting state
     solver.solvePuzzle(puzzle)
