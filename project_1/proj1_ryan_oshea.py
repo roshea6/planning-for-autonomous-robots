@@ -173,11 +173,9 @@ class eightPuzzleSolver():
     
             fixed_puzzle = ""
             
-            trans_puzz = np.transpose(puzzle)
-            
-            # Transpose the puzzle to reverse the rows and columns so it's in the proper order        
-            for array_item in np.nditer(trans_puzz):
-                fixed_puzzle += str(array_item) + " "
+            # Loop through the length (3 rows) of the puzzle and grab the correct elements from each row to append to make it column order
+            for i in range(len(puzzle)):
+                fixed_puzzle += str(puzzle[0][i]) + " " + str(puzzle[1][i]) + " " + str(puzzle[2][i]) + " "
                 
             fixed_puzzle += "\n"
                 
@@ -193,6 +191,29 @@ class eightPuzzleSolver():
             nodes_info_file.write(node_info)
             
         # TODO: Write the rest of the nodes info states from states to visit list
+        for puzzle_state in self.states_to_visit:
+            # Grab the puzzle array from the dictionary
+            puzzle = puzzle_state["puzzle_state"]
+    
+            fixed_puzzle = ""
+            
+            # Loop through the length (3 rows) of the puzzle and grab the correct elements from each row to append to make it column order
+            for i in range(len(puzzle)):
+                fixed_puzzle += str(puzzle[0][i]) + " " + str(puzzle[1][i]) + " " + str(puzzle[2][i]) + " "
+                
+            fixed_puzzle += "\n"
+            
+            # I'm pretty sure the standard nodes file only wants fully explored nodes and not just the visited ones
+            # nodes_file.write(fixed_puzzle)
+            
+            # Get the node and parent IDs so they can be written to the nodes info file
+            node_id = puzzle_state["node_index"]
+            parent_node = puzzle_state["parent_node"]
+            
+            # Build the nodes info string
+            node_info = str(node_id) + "\t" + str(parent_node) + "\t" + fixed_puzzle
+            
+            nodes_info_file.write(node_info)
             
         node_path_file = open("nodePath.txt", "w")
         # Write the path to a file
@@ -202,9 +223,9 @@ class eightPuzzleSolver():
     
             fixed_puzzle = ""
             
-            # Transpose the puzzle to reverse the rows and columns so it's in the proper order        
-            for array_item in  np.nditer(puzzle):
-                fixed_puzzle += str(array_item) + " "
+            # Loop through the length (3 rows) of the puzzle and grab the correct elements from each row to append to make it column order
+            for i in range(len(puzzle)):
+                fixed_puzzle += str(puzzle[0][i]) + " " + str(puzzle[1][i]) + " " + str(puzzle[2][i]) + " "
                 
             fixed_puzzle += "\n"
                 
