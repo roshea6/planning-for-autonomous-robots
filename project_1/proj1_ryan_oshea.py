@@ -162,21 +162,54 @@ class eightPuzzleSolver():
         parent_id_list = []
         
         nodes_info_file = open("NodesInfo.txt", "w")
-        nodes_info_file.write("Node_index \t Parent_Node_index \t Node")
+        nodes_info_file.write("Node_index \t Parent_Node_index \t Node \n")
         
         nodes_file = open("Nodes.txt", "w")
         
+        # Loop through the visited states to build the nodes file and part of the nodes info file
         for puzzle_state in self.visited_states:
-            # saved_visited_states.append(puzzle_state["puzzle_state"])
-            # node_id_list.append(puzzle_state["node_index"])
-            # parent_id_list.append(puzzle_state["parent_node"])
+            # Grab the puzzle array from the dictionary
             puzzle = puzzle_state["puzzle_state"]
-            # TODO: Rearrange the puzzle so it's in column order
-            fixed_puzzle = []
+    
+            fixed_puzzle = ""
             
+            trans_puzz = np.transpose(puzzle)
+            
+            # Transpose the puzzle to reverse the rows and columns so it's in the proper order        
+            for array_item in np.nditer(trans_puzz):
+                fixed_puzzle += str(array_item) + " "
+                
+            fixed_puzzle += "\n"
+                
+            nodes_file.write(fixed_puzzle)
+            
+            # Get the node and parent IDs so they can be written to the nodes info file
             node_id = puzzle_state["node_index"]
             parent_node = puzzle_state["parent_node"]
-            # nodes_file.write()
+            
+            # Build the nodes info string
+            node_info = str(node_id) + "\t" + str(parent_node) + "\t" + fixed_puzzle
+            
+            nodes_info_file.write(node_info)
+            
+        # TODO: Write the rest of the nodes info states from states to visit list
+            
+        node_path_file = open("nodePath.txt", "w")
+        # Write the path to a file
+        for puzzle_state in node_id_path:
+            # Grab the puzzle array from the dictionary
+            puzzle = puzzle_state["puzzle_state"]
+    
+            fixed_puzzle = ""
+            
+            # Transpose the puzzle to reverse the rows and columns so it's in the proper order        
+            for array_item in  np.nditer(puzzle):
+                fixed_puzzle += str(array_item) + " "
+                
+            fixed_puzzle += "\n"
+                
+            node_path_file.write(fixed_puzzle)
+            
     
     # Main driver function for solving the puzzle for a given configuration
     def solvePuzzle(self, puzzle):
