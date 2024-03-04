@@ -59,10 +59,38 @@ class dijkstraMapSolver():
                                       thickness=-1, 
                                       color=self.map_colors["obstacle"])
         
+        # Hexagon
+        hex_origin = (650, 250)
+        hex_x_len = 130
+        hex_y_len = 150
+        
+        # Clearance
+        # Define the hexagon vertices starting with the top center and working clockwise
+        hex_pts = np.array([[hex_origin[0], hex_origin[1] - hex_y_len - self.clearance], # top center
+                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] - hex_y_len/2], # top right
+                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] + hex_y_len/2], # bottom right
+                   [hex_origin[0], hex_origin[1] + hex_y_len + self.clearance], # bottom center
+                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] + hex_y_len/2], # bottom left
+                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] - hex_y_len/2]], np.int32) # top left
+        
+        # Draw the hexagon
+        obstacle_map = cv2.fillPoly(obstacle_map, [hex_pts], color=self.map_colors["clearance"])
+        
+        # Obstacle hexagon
+        # Define the hexagon vertices starting with the top center and working clockwise
+        hex_pts = np.array([[hex_origin[0], hex_origin[1] - hex_y_len], # top center
+                   [hex_origin[0] + hex_x_len, hex_origin[1] - hex_y_len/2], # top right
+                   [hex_origin[0] + hex_x_len, hex_origin[1] + hex_y_len/2], # bottom right
+                   [hex_origin[0], hex_origin[1] + hex_y_len], # bottom center
+                   [hex_origin[0] - hex_x_len, hex_origin[1] + hex_y_len/2], # bottom left
+                   [hex_origin[0] - hex_x_len, hex_origin[1] - hex_y_len/2]], np.int32) # top left
+        
+        # Draw the hexagon
+        obstacle_map = cv2.fillPoly(obstacle_map, [hex_pts], color=self.map_colors["obstacle"])
+        
         cv2.imshow("Map", obstacle_map)
         cv2.waitKey(0)
         
-        # Hexagon
         
         # Backwards C shape
         
