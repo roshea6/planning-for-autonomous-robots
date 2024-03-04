@@ -46,7 +46,7 @@ class dijkstraMapSolver():
         bottom_right = (350, 500)
         
         # First draw the clearance rectangle
-        obstacle_map = cv2.rectangle(blank_map, 
+        obstacle_map = cv2.rectangle(obstacle_map, 
                                      (top_left[0]-self.clearance, top_left[1] - self.clearance), 
                                      (bottom_right[0] + self.clearance, bottom_right[1]),
                                       thickness=-1, 
@@ -66,6 +66,8 @@ class dijkstraMapSolver():
         
         # Clearance
         # Define the hexagon vertices starting with the top center and working clockwise
+        # TODO: Looks like this doesn't make the full 5 pixel clerance on the sides
+        # Might need to define manual lines for this part
         hex_pts = np.array([[hex_origin[0], hex_origin[1] - hex_y_len - self.clearance], # top center
                    [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] - hex_y_len/2], # top right
                    [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] + hex_y_len/2], # bottom right
@@ -88,14 +90,66 @@ class dijkstraMapSolver():
         # Draw the hexagon
         obstacle_map = cv2.fillPoly(obstacle_map, [hex_pts], color=self.map_colors["obstacle"])
         
-        cv2.imshow("Map", obstacle_map)
-        cv2.waitKey(0)
-        
-        
         # Backwards C shape
+        # Draw the 3 clearance sub rectangles that make up the shape first
+        # Top rectangle
+        c_top_top_left = (900, 50)
+        c_top_bottom_right = (1020, 125)
         
+        # Top clearance rectangle
+        obstacle_map = cv2.rectangle(obstacle_map, 
+                                     (c_top_top_left[0]-self.clearance, c_top_top_left[1] - self.clearance), 
+                                     (c_top_bottom_right[0] + self.clearance, c_top_bottom_right[1] + self.clearance),
+                                      thickness=-1, 
+                                      color=self.map_colors["clearance"])
+        
+        # Middle clearance rectangle
+        c_middle_top_left = (1020, 50)
+        c_middle_bottom_right = (1100, 450)
+        
+        obstacle_map = cv2.rectangle(blank_map, 
+                                     (c_middle_top_left[0]-self.clearance, c_middle_top_left[1] - self.clearance), 
+                                     (c_middle_bottom_right[0] + self.clearance, c_middle_bottom_right[1] + self.clearance),
+                                      thickness=-1, 
+                                      color=self.map_colors["clearance"])
+        
+        c_bottom_top_left = (900, 375)
+        c_bottom_bottom_right = (1020, 450)
+        
+        # Bottom clearance rectangle
+        obstacle_map = cv2.rectangle(blank_map, 
+                                     (c_bottom_top_left[0]-self.clearance, c_bottom_top_left[1] - self.clearance), 
+                                     (c_bottom_bottom_right[0] + self.clearance, c_bottom_bottom_right[1] + self.clearance),
+                                      thickness=-1, 
+                                      color=self.map_colors["clearance"])
+        
+        # Obstacle rectangles
+        # Top clearance rectangle
+        obstacle_map = cv2.rectangle(obstacle_map, 
+                                     (c_top_top_left[0], c_top_top_left[1]), 
+                                     (c_top_bottom_right[0], c_top_bottom_right[1]),
+                                      thickness=-1, 
+                                      color=self.map_colors["obstacle"])
+        
+        # Middle clearance rectangle
+        obstacle_map = cv2.rectangle(blank_map, 
+                                     (c_middle_top_left[0], c_middle_top_left[1]), 
+                                     (c_middle_bottom_right[0], c_middle_bottom_right[1]),
+                                      thickness=-1, 
+                                      color=self.map_colors["obstacle"])
+        
+        # Bottom clearance rectangle
+        obstacle_map = cv2.rectangle(blank_map, 
+                                     (c_bottom_top_left[0], c_bottom_top_left[1]), 
+                                     (c_bottom_bottom_right[0], c_bottom_bottom_right[1]),
+                                      thickness=-1, 
+                                      color=self.map_colors["obstacle"])
+        
+        # cv2.imshow("Map", obstacle_map)
+        # cv2.waitKey(0)
         # Outer edge?
         
+        return obstacle_map
     
     # Gets the start and end point from user input and stores them
     def getStartAndGoalInput(self):
