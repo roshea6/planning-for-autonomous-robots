@@ -1,6 +1,10 @@
 # O'Shea ENPM661 Project 2: Dijkstra's Path Planner
 Provides a class for using Diskstra's algorithm to find the shortest path between a given start and goal point
 
+# Project Link
+https://github.com/roshea6/planning-for-autonomous-robots
+The project can be found at the above URL under the project 2 folder. I keep all of my code for the class in this repo so the project 0 and 1 code are there as well. The commits between March 3rd and March 9th correspond to the commits for project 2 minus some minor changes to project 1 on March 6th.
+
 # Dependencies
 - numpy
 - copy
