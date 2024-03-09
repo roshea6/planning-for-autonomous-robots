@@ -20,15 +20,13 @@ class dijkstraMapSolver():
         # Clearance in milimeters
         self.clearance = 5
         
-        # TODO: Move these to user input
-        self.start_node = (10, 10)
-        
-        
-        self.goal_node = (480, 60)
-        
-        
         
         self.action_set = [(1,0), (-1,0), (0,1), (0,-1), (1,1), (-1,1), (1,-1), (-1,-1)]
+        
+        
+        self.world_map = self.makeMap()
+        
+        self.getStartAndGoalInput()
         
         self.node_index = 0
         
@@ -49,8 +47,6 @@ class dijkstraMapSolver():
         
         self.open_list.put(node)
         self.node_index += 1
-        
-        self.world_map = self.makeMap()
         
         # Make a map that will be drawn on from the world map
         self.draw_map = copy.copy(self.world_map)
@@ -74,7 +70,8 @@ class dijkstraMapSolver():
         self.record = record_video
         
         if self.record:
-            self.video_rec = cv2.VideoWriter('output.mp4', -1, 600.0, (self.map_dim[1], self.map_dim[0]))
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.video_rec = cv2.VideoWriter('dijkstra_ryan_oshea_output.mp4', fourcc, 120.0, (self.map_dim[1], self.map_dim[0]))
             
             self.video_rec.write(self.draw_map)
             
@@ -247,7 +244,31 @@ class dijkstraMapSolver():
     
     # Gets the start and end point from user input and stores them
     def getStartAndGoalInput(self):
-        pass
+        # Loop until a valid starting point is input
+        while True:
+            start_x = int(input("Enter start pixel x value: "))
+            start_y = self.map_dim[0] - int(input("Enter start pixel y value: "))
+            
+            if list(self.world_map[start_y, start_x]) == self.map_colors["obstacle"] or list(self.world_map[start_y, start_x]) == self.map_colors["clearance"]:
+                print("Start location entered collides with obstacle. Please enter a new value")
+            else:
+                break
+            
+        # Need to swap y and x because of the way numpy indexes things
+        self.start_node = (start_y, start_x)
+                
+        # Loop until a valid goal input is input
+        while True:
+            goal_x = int(input("Enter goal pixel x value: "))
+            goal_y = self.map_dim[0] - int(input("Enter goal pixel y value: "))
+            
+            if list(self.world_map[goal_y, goal_x]) == self.map_colors["obstacle"] or list(self.world_map[goal_y, goal_x]) == self.map_colors["clearance"]:
+                print("Goal location entered collides with obstacle. Please enter a new value")
+            else:
+                break
+            
+        self.goal_node = (goal_y, goal_x)
+            
     
     def applyMoves(self, start_pixel, cost):
         for move in self.action_set:
@@ -281,7 +302,6 @@ class dijkstraMapSolver():
                     # Add the node with the updated cost to the priority queue
                     self.open_list.put(updated_node)
                     
-                    # TODO: Do we need to remove the old node from the priority queue?
                  
             # Otherwise add the new pixel to the checked nodes and pixel locations we're tracking   
             else:
@@ -292,7 +312,7 @@ class dijkstraMapSolver():
                 self.draw_map[new_loc[0], new_loc[1]] = self.map_colors["explored"]  
                 
                 # Write the latest frame to the video
-                if self.record:
+                if self.record and self.node_index % 100 == 0:
                     self.video_rec.write(self.draw_map)  
                 
                 # Update the checked nodes dict with the updated now
@@ -324,6 +344,18 @@ class dijkstraMapSolver():
             # Save the pixel so we can trace it later
             self.path_pixels.append(pix_loc)
             
+        # Animate the path
+        self.path_pixels.reverse()
+        
+        for pixel in self.path_pixels:
+            self.draw_map = cv2.rectangle(self.draw_map, 
+                                    (pixel[1], pixel[0]), 
+                                    (pixel[1] + 3, pixel[0] + 3),
+                                    color=self.map_colors["start"],
+                                    thickness=-1)
+            self.video_rec.write(self.draw_map) 
+            
+            
         # Draw the start and goal nodes again
         self.draw_map = cv2.rectangle(self.draw_map, 
                                     (self.start_node[1], self.start_node[0]), 
@@ -339,7 +371,9 @@ class dijkstraMapSolver():
         
         # Write the final frame to the video
         if self.record:
-            self.video_rec.write(self.draw_map) 
+            # Write the final frame multiple times to let it show for a while
+            for i in range(300):
+                self.video_rec.write(self.draw_map) 
             
             
     
@@ -350,16 +384,14 @@ class dijkstraMapSolver():
             # Pop off the highest priority node
             priority_node = self.open_list.get()
             
-            print(priority_node)
+            # print(priority_node)
             
             # First check if this is the goal node
             if priority_node[3] == self.goal_node:
                 print("Goal found")
+                # If it is then backtrack to the start node and break out of the loop
                 self.backtrack(priority_node)
-                
                 break
-            
-            # TODO: Check to make sure an updated lower cost for the nodes wasn't already found
             
             cost = priority_node[0]
             
@@ -377,6 +409,6 @@ class dijkstraMapSolver():
             self.video_rec.release()
     
 if __name__ == '__main__':
-    solver = dijkstraMapSolver(record_video=False)
+    solver = dijkstraMapSolver(record_video=True)
     
     solver.findPath()
