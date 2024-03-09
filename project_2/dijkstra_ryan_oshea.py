@@ -249,7 +249,9 @@ class dijkstraMapSolver():
             start_x = int(input("Enter start pixel x value: "))
             start_y = self.map_dim[0] - int(input("Enter start pixel y value: "))
             
-            if list(self.world_map[start_y, start_x]) == self.map_colors["obstacle"] or list(self.world_map[start_y, start_x]) == self.map_colors["clearance"]:
+            if start_x > self.map_dim[1] or start_x < 0 or start_y > self.map_dim[0] or start_y < 0:
+                print("Please choose values inside the bounds of the image")
+            elif list(self.world_map[start_y, start_x]) == self.map_colors["obstacle"] or list(self.world_map[start_y, start_x]) == self.map_colors["clearance"]:
                 print("Start location entered collides with obstacle. Please enter a new value")
             else:
                 break
@@ -262,7 +264,9 @@ class dijkstraMapSolver():
             goal_x = int(input("Enter goal pixel x value: "))
             goal_y = self.map_dim[0] - int(input("Enter goal pixel y value: "))
             
-            if list(self.world_map[goal_y, goal_x]) == self.map_colors["obstacle"] or list(self.world_map[goal_y, goal_x]) == self.map_colors["clearance"]:
+            if goal_x > self.map_dim[1] or goal_x < 0 or goal_y > self.map_dim[0] or goal_y < 0:
+                print("Please choose values inside the bounds of the image")
+            elif list(self.world_map[goal_y, goal_x]) == self.map_colors["obstacle"] or list(self.world_map[goal_y, goal_x]) == self.map_colors["clearance"]:
                 print("Goal location entered collides with obstacle. Please enter a new value")
             else:
                 break
