@@ -3,6 +3,7 @@ import numpy as np
 import copy
 from queue import PriorityQueue
 import math
+import time
 
 class dijkstraMapSolver():
     def __init__(self, record_video=False):
@@ -387,6 +388,7 @@ class dijkstraMapSolver():
         # Animate the path
         self.path_pixels.reverse()
         
+        # TODO: Might want to change these from rectangles to lines with 3 thickness to connect path with large step sizes
         for pixel in self.path_pixels:
             self.draw_map = cv2.rectangle(self.draw_map, 
                                     (pixel[1], pixel[0]), 
@@ -420,10 +422,8 @@ class dijkstraMapSolver():
     # Checks if the passed in node is within the acceptable threshold of the goal
     def checkIfGoal(self, input_node):
         node = input_node[3]
-        print("Distance to goal: {}".format(math.sqrt((self.goal_node[0] - node[0])**2 + ((self.goal_node[1] - node[1])**2))))
-        # print(node)
-        # print(self.goal_node)
-        # exit()
+        # print("Distance to goal: {}".format(math.sqrt((self.goal_node[0] - node[0])**2 + ((self.goal_node[1] - node[1])**2))))
+ 
         # Check euclidian distance between x and y
         if not math.sqrt((self.goal_node[0] - node[0])**2 + (self.goal_node[1] - node[1])**2) <= self.dist_tolerance:
             return False
@@ -435,12 +435,13 @@ class dijkstraMapSolver():
     
     # Finds the shortest path from the start to end goal using Dijkstra's algorithm
     def findPath(self):
+        start_time = time.time()
         # Loop until we've removed all nodes from the open list
         while not self.open_list.empty():
             # Pop off the highest priority node
             priority_node = self.open_list.get()
             
-            print(priority_node)
+            # print(priority_node)
             
             # First check if this is the goal node
             if self.checkIfGoal(priority_node):
@@ -457,6 +458,8 @@ class dijkstraMapSolver():
             
             # Move the current node to the closed nodes list
             self.closed_list[str(pixel_loc)] = priority_node
+
+        print("Total time: {} seconds".format(time.time() - start_time))
             
         cv2.imshow("Exploration map", self.draw_map)
         cv2.waitKey(0)
@@ -466,5 +469,7 @@ class dijkstraMapSolver():
     
 if __name__ == '__main__':
     solver = dijkstraMapSolver(record_video=True)
+
+    # TODO: Add in start and end time for start of path planning and ending to compare run times
     
     solver.findPath()
