@@ -302,6 +302,12 @@ class dijkstraMapSolver():
             # Scale the new angle to be between 0 and 360
             new_angle = new_angle % 360
             new_loc = (int(start_pixel[0] + self.step_size*math.cos(self.deg2rad(new_angle))), int(start_pixel[1] + self.step_size*math.sin(self.deg2rad(new_angle))), new_angle)
+
+            if new_loc[0] >= self.map_dim[0] or new_loc[0] < 0:
+                continue
+
+            if new_loc[0] >= self.map_dim[1] or new_loc[1] < 0:
+                continue
             
             # Check if we're in an obstacle or clearance pixel
             if list(self.world_map[new_loc[0], new_loc[1]]) == self.map_colors["obstacle"] or list(self.world_map[new_loc[0], new_loc[1]]) == self.map_colors["clearance"]:
@@ -421,9 +427,9 @@ class dijkstraMapSolver():
         # Check euclidian distance between x and y
         if not math.sqrt((self.goal_node[0] - node[0])**2 + (self.goal_node[1] - node[1])**2) <= self.dist_tolerance:
             return False
-        # # Check difference between the current and goal angle
-        # elif not abs(self.goal_node[2] - node[2]):
-        #     return False
+        # Check difference between the current and goal angle
+        elif not abs(self.goal_node[2] - node[2]) <= self.angle_tolerance:
+            return False
         else:
             return True
     
