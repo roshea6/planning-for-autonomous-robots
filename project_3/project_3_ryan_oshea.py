@@ -19,9 +19,12 @@ class dijkstraMapSolver():
         
         # Clearance in milimeters
         self.clearance = 5
+
+        self.dist_tolerance = 3
+        self.angle_tolerance = 30
         
         
-        self.action_set = [(1,0), (-1,0), (0,1), (0,-1), (1,1), (-1,1), (1,-1), (-1,-1)]
+        self.action_set = [-60, -30, 0, 30, 60]
         
         
         self.world_map = self.makeMap()
@@ -71,7 +74,7 @@ class dijkstraMapSolver():
         
         if self.record:
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            self.video_rec = cv2.VideoWriter('dijkstra_ryan_oshea_output.mp4', fourcc, 120.0, (self.map_dim[1], self.map_dim[0]))
+            self.video_rec = cv2.VideoWriter('a_star_ryan_oshea_output.mp4', fourcc, 120.0, (self.map_dim[1], self.map_dim[0]))
             
             self.video_rec.write(self.draw_map)
             
@@ -248,45 +251,66 @@ class dijkstraMapSolver():
         while True:
             start_x = int(input("Enter start pixel x value: "))
             start_y = self.map_dim[0] - int(input("Enter start pixel y value: "))
+            start_theta = int(input("Enter start theta value that is a multiple of 30: "))
             
             if start_x > self.map_dim[1] or start_x < 0 or start_y > self.map_dim[0] or start_y < 0:
                 print("Please choose values inside the bounds of the image")
             elif list(self.world_map[start_y, start_x]) == self.map_colors["obstacle"] or list(self.world_map[start_y, start_x]) == self.map_colors["clearance"]:
                 print("Start location entered collides with obstacle. Please enter a new value")
+            elif not start_theta % 30 == 0:
+                print("Start angle not a multiple of 30")
             else:
                 break
             
         # Need to swap y and x because of the way numpy indexes things
-        self.start_node = (start_y, start_x)
+        self.start_node = (start_y, start_x, start_theta)
                 
         # Loop until a valid goal input is input
         while True:
             goal_x = int(input("Enter goal pixel x value: "))
             goal_y = self.map_dim[0] - int(input("Enter goal pixel y value: "))
+            goal_theta = int(input("Enter start theta value that is a multiple of 30: "))
             
             if goal_x > self.map_dim[1] or goal_x < 0 or goal_y > self.map_dim[0] or goal_y < 0:
                 print("Please choose values inside the bounds of the image")
             elif list(self.world_map[goal_y, goal_x]) == self.map_colors["obstacle"] or list(self.world_map[goal_y, goal_x]) == self.map_colors["clearance"]:
                 print("Goal location entered collides with obstacle. Please enter a new value")
+            elif not goal_theta % 30 == 0:
+                print("Goal angle not a multiple of 30")
             else:
                 break
+
+        while True:
+            self.step_size = int(input("Please enter a step size value between 1 and 10: "))
+
+            if self.step_size < 1 or self.step_size > 10:
+                print("Invalid step size")
+            else:
+                break
+
+        # TODO: Add in input for the clearance and maybe robot size? The full clearance will just be the clerance + robot size if we need to add both
             
-        self.goal_node = (goal_y, goal_x)
+        self.goal_node = (goal_y, goal_x, goal_theta)
             
+
+    def deg2rad(self, deg):
+        return (math.pi/180) * deg
     
     def applyMoves(self, start_pixel, cost):
         for move in self.action_set:
-            new_loc = (start_pixel[0] + move[0], start_pixel[1] + move[1])
+            new_angle = start_pixel[2] + move
+            # Scale the new angle to be between 0 and 360
+            new_angle = new_angle % 360
+            new_loc = (int(start_pixel[0] + self.step_size*math.cos(self.deg2rad(new_angle))), int(start_pixel[1] + self.step_size*math.sin(self.deg2rad(new_angle))), new_angle)
             
             # Check if we're in an obstacle or clearance pixel
             if list(self.world_map[new_loc[0], new_loc[1]]) == self.map_colors["obstacle"] or list(self.world_map[new_loc[0], new_loc[1]]) == self.map_colors["clearance"]:
                 # If we are don't add it to the list of new nodes
                 # print("HIT OBSTACLE")
-                
                 continue
             
-            # Calculate cost to get the new pixel from the parent pixel
-            cost_to_go = cost + math.sqrt(move[0]**2 + move[1]**2)
+            # Calculate cost to get to the new pixel from the parent pixel as the euclidian distance between the 2
+            cost_to_go = cost + math.sqrt((start_pixel[0] - new_loc[0])**2 + (start_pixel[1] - new_loc[1])**2)
 
             # Calculate the cost to come as the euclidian distance between the ne config and the goal config
             # TODO: Do we need to calculate the rotation distance as well?
@@ -363,7 +387,8 @@ class dijkstraMapSolver():
                                     (pixel[1] + 3, pixel[0] + 3),
                                     color=self.map_colors["start"],
                                     thickness=-1)
-            self.video_rec.write(self.draw_map) 
+            if self.record:
+                self.video_rec.write(self.draw_map) 
             
             
         # Draw the start and goal nodes again
@@ -386,6 +411,21 @@ class dijkstraMapSolver():
                 self.video_rec.write(self.draw_map) 
             
             
+    # Checks if the passed in node is within the acceptable threshold of the goal
+    def checkIfGoal(self, input_node):
+        node = input_node[3]
+        print("Distance to goal: {}".format(math.sqrt((self.goal_node[0] - node[0])**2 + ((self.goal_node[1] - node[1])**2))))
+        # print(node)
+        # print(self.goal_node)
+        # exit()
+        # Check euclidian distance between x and y
+        if not math.sqrt((self.goal_node[0] - node[0])**2 + (self.goal_node[1] - node[1])**2) <= self.dist_tolerance:
+            return False
+        # # Check difference between the current and goal angle
+        # elif not abs(self.goal_node[2] - node[2]):
+        #     return False
+        else:
+            return True
     
     # Finds the shortest path from the start to end goal using Dijkstra's algorithm
     def findPath(self):
@@ -394,10 +434,10 @@ class dijkstraMapSolver():
             # Pop off the highest priority node
             priority_node = self.open_list.get()
             
-            # print(priority_node)
+            print(priority_node)
             
             # First check if this is the goal node
-            if priority_node[3] == self.goal_node:
+            if self.checkIfGoal(priority_node):
                 print("Goal found")
                 # If it is then backtrack to the start node and break out of the loop
                 self.backtrack(priority_node)
