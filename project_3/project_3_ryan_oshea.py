@@ -5,7 +5,7 @@ from queue import PriorityQueue
 import math
 import time
 
-class dijkstraMapSolver():
+class AStarMapSolver():
     def __init__(self, record_video=False):
         # Define the map colors
         self.map_colors = {"obstacle": [0, 0, 255],
@@ -477,8 +477,6 @@ class dijkstraMapSolver():
             self.video_rec.release()
     
 if __name__ == '__main__':
-    solver = dijkstraMapSolver(record_video=True)
-
-    # TODO: Add in start and end time for start of path planning and ending to compare run times
+    solver = AStarMapSolver(record_video=True)
     
     solver.findPath()
