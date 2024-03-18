@@ -18,8 +18,16 @@ class dijkstraMapSolver():
         
         self.map_dim = (500, 1200)
         
+        self.save_every_n_frames = 600
+        
         # Clearance in milimeters
-        self.clearance = 5
+        while True:
+            self.clearance = int(input("Enter the clearance value in mm (5-15 recommended): "))
+            
+            if self.clearance < 0 or self.clearance > 30:
+                continue
+            else:
+                break
 
         self.dist_tolerance = 3
         self.angle_tolerance = 30
@@ -353,7 +361,8 @@ class dijkstraMapSolver():
                 self.draw_map[new_loc[0], new_loc[1]] = self.map_colors["explored"]  
                 
                 # Write the latest frame to the video
-                if self.record and self.node_index % 100 == 0:
+                # TODO: Should probably make this into a save_every_n_frames param
+                if self.record and self.node_index % self.save_every_n_frames == 0:
                     self.video_rec.write(self.draw_map)  
                 
                 # Update the checked nodes dict with the updated now
