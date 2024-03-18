@@ -18,7 +18,7 @@ class AStarMapSolver():
         
         self.map_dim = (500, 1200)
         
-        self.save_every_n_frames = 600
+        self.save_every_n_frames = 400
         
         # Clearance in milimeters
         while True:
@@ -42,7 +42,7 @@ class AStarMapSolver():
         
         self.node_index = 0
         
-        node = (0, self.node_index, self.start_node, self.start_node)
+        node = (0, self.node_index, self.start_node, self.start_node, 0)
         
         self.open_list = PriorityQueue()
         
@@ -172,11 +172,11 @@ class AStarMapSolver():
         # TODO: Looks like this doesn't make the full 5 pixel clerance on the sides
         # Might need to define manual lines for this part
         hex_pts = np.array([[hex_origin[0], hex_origin[1] - hex_y_len - self.clearance], # top center
-                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] - hex_y_len/2], # top right
-                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] + hex_y_len/2], # bottom right
+                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] - hex_y_len/2 - self.clearance/2], # top right
+                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] + hex_y_len/2 + self.clearance/2], # bottom right
                    [hex_origin[0], hex_origin[1] + hex_y_len + self.clearance], # bottom center
-                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] + hex_y_len/2], # bottom left
-                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] - hex_y_len/2]], np.int32) # top left
+                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] + hex_y_len/2 + self.clearance/2], # bottom left
+                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] - hex_y_len/2 - self.clearance/2]], np.int32) # top left
         
         # Draw the hexagon
         obstacle_map = cv2.fillPoly(obstacle_map, [hex_pts], color=self.map_colors["clearance"])
@@ -295,13 +295,15 @@ class AStarMapSolver():
             if self.step_size < 1 or self.step_size > 10:
                 print("Invalid step size")
             else:
+                # Multiply step by 2 to account for the larger map
+                self.step_size *= 2
                 break
 
         # TODO: Add in input for the clearance and maybe robot size? The full clearance will just be the clerance + robot size if we need to add both
             
         self.goal_node = (goal_y, goal_x, goal_theta)
             
-
+    # Converts degrees to radians
     def deg2rad(self, deg):
         return (math.pi/180) * deg
     
@@ -325,14 +327,16 @@ class AStarMapSolver():
                 continue
             
             # Calculate cost to get to the new pixel from the parent pixel as the euclidian distance between the 2
-            cost_to_go = cost + math.sqrt((start_pixel[0] - new_loc[0])**2 + (start_pixel[1] - new_loc[1])**2)
+            cost_to_come = cost + math.sqrt((start_pixel[0] - new_loc[0])**2 + (start_pixel[1] - new_loc[1])**2)
 
             # Calculate the cost to come as the euclidian distance between the ne config and the goal config
             # TODO: Do we need to calculate the rotation distance as well?
-            cost_to_come = math.sqrt((self.goal_node[0] - new_loc[0])**2 + (self.goal_node[1] - new_loc[1])**2)
-
-            total_cost = cost_to_go + cost_to_come
+            cost_to_go = math.sqrt((self.goal_node[0] - new_loc[0])**2 + (self.goal_node[1] - new_loc[1])**2)
             
+            # print("Cost to come: {}".format(cost_to_come))
+            # print("Cost to go: {}".format(cost_to_go))
+
+            total_cost = cost_to_go + cost_to_come 
             
             # Check if the pixel is in the list of working pixels and grab it's current cost if it is
             if str(new_loc) in self.checked_pixels:
@@ -343,7 +347,7 @@ class AStarMapSolver():
                 # If the new found cost is less than the existing cost then update the node with the new cost and 
                 # parent pixel that gives it the lower cost
                 if total_cost < existing_cost:
-                    updated_node = (total_cost, existing_node[1], start_pixel, existing_node[3])
+                    updated_node = (total_cost, existing_node[1], start_pixel, existing_node[3], cost_to_come)
                     
                     # Update the checked nodes dict with the updated now
                     self.checked_nodes[str(new_loc)] = updated_node
@@ -354,7 +358,7 @@ class AStarMapSolver():
                  
             # Otherwise add the new pixel to the checked nodes and pixel locations we're tracking   
             else:
-                new_node = (total_cost, self.node_index, start_pixel, new_loc)
+                new_node = (total_cost, self.node_index, start_pixel, new_loc, cost_to_come)
                 self.node_index += 1
                 
                 # Update the drawing map with the latest explored node
@@ -459,7 +463,7 @@ class AStarMapSolver():
                 self.backtrack(priority_node)
                 break
             
-            cost = priority_node[0]
+            cost = priority_node[4]
             
             pixel_loc = priority_node[3]
             
