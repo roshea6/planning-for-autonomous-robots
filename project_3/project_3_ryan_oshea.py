@@ -6,7 +6,7 @@ import math
 import time
 
 class AStarMapSolver():
-    def __init__(self, record_video=False):
+    def __init__(self, record_video=False, c2g_weight=1):
         # Define the map colors
         self.map_colors = {"obstacle": [0, 0, 255],
                            "clearance": [0, 255, 0],
@@ -18,7 +18,9 @@ class AStarMapSolver():
         
         self.map_dim = (500, 1200)
         
-        self.save_every_n_frames = 400
+        self.save_every_n_frames = 600
+        
+        self.c2g_weight = c2g_weight
         
         # Clearance in milimeters
         while True:
@@ -88,6 +90,8 @@ class AStarMapSolver():
             self.video_rec.write(self.draw_map)
             
         self.path_pixels = []
+        
+        self.goal_found = False
     
     # Makes the map image based on the parameters defined in the assigment
     def makeMap(self):
@@ -312,12 +316,13 @@ class AStarMapSolver():
             new_angle = start_pixel[2] + move
             # Scale the new angle to be between 0 and 360
             new_angle = new_angle % 360
+            # Create the new configuration based on step size and the new angle
             new_loc = (int(start_pixel[0] + self.step_size*math.cos(self.deg2rad(new_angle))), int(start_pixel[1] + self.step_size*math.sin(self.deg2rad(new_angle))), new_angle)
 
             if new_loc[0] >= self.map_dim[0] or new_loc[0] < 0:
                 continue
 
-            if new_loc[0] >= self.map_dim[1] or new_loc[1] < 0:
+            if new_loc[1] >= self.map_dim[1] or new_loc[1] < 0:
                 continue
             
             # Check if we're in an obstacle or clearance pixel
@@ -336,9 +341,9 @@ class AStarMapSolver():
             # print("Cost to come: {}".format(cost_to_come))
             # print("Cost to go: {}".format(cost_to_go))
 
-            total_cost = cost_to_go + cost_to_come 
+            total_cost = self.c2g_weight*cost_to_go + cost_to_come 
             
-            # Check if the pixel is in the list of working pixels and grab it's current cost if it is
+            # Check if the configuration is in the list of working configs and grab it's current cost if it is
             if str(new_loc) in self.checked_pixels:
                 existing_node = self.checked_nodes[str(new_loc)]
                 
@@ -461,6 +466,7 @@ class AStarMapSolver():
                 print("Goal found")
                 # If it is then backtrack to the start node and break out of the loop
                 self.backtrack(priority_node)
+                self.goal_found = True
                 break
             
             cost = priority_node[4]
@@ -471,6 +477,9 @@ class AStarMapSolver():
             
             # Move the current node to the closed nodes list
             self.closed_list[str(pixel_loc)] = priority_node
+            
+        if not self.goal_found:
+            print("UNABLE TO FIND PATH TO GOAL FROM GIVEN CONFIGURATIONS. PLEASE ENTER A NEW CONFIGURATION.")
 
         print("Total time: {} seconds".format(time.time() - start_time))
             
@@ -481,6 +490,6 @@ class AStarMapSolver():
             self.video_rec.release()
     
 if __name__ == '__main__':
-    solver = AStarMapSolver(record_video=True)
+    solver = AStarMapSolver(record_video=True, c2g_weight=1)
     
     solver.findPath()
