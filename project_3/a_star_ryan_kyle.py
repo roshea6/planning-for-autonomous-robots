@@ -495,6 +495,6 @@ class AStarMapSolver():
             self.video_rec.release()
     
 if __name__ == '__main__':
-    solver = AStarMapSolver(record_video=True, c2g_weight=3, use_lines=True, save_every_n_frames=100)
+    solver = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=False, save_every_n_frames=600)
     
     solver.findPath()
