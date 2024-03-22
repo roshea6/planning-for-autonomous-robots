@@ -6,7 +6,7 @@ import math
 import time
 
 class AStarMapSolver():
-    def __init__(self, record_video=False, c2g_weight=1):
+    def __init__(self, record_video=False, c2g_weight=1, use_lines=False, save_every_n_frames=500):
         # Define the map colors
         self.map_colors = {"obstacle": [0, 0, 255],
                            "clearance": [0, 255, 0],
@@ -18,9 +18,11 @@ class AStarMapSolver():
         
         self.map_dim = (500, 1200)
         
-        self.save_every_n_frames = 600
+        self.save_every_n_frames = save_every_n_frames
         
         self.c2g_weight = c2g_weight
+        # Determine if lines should be drawn from spot to spot instead of just filling in the pixel
+        self.use_lines = use_lines
         
         # Clearance in milimeters
         while True:
@@ -317,7 +319,7 @@ class AStarMapSolver():
             # Scale the new angle to be between 0 and 360
             new_angle = new_angle % 360
             # Create the new configuration based on step size and the new angle
-            new_loc = (int(start_pixel[0] + self.step_size*math.cos(self.deg2rad(new_angle))), int(start_pixel[1] + self.step_size*math.sin(self.deg2rad(new_angle))), new_angle)
+            new_loc = (int(start_pixel[0] + self.step_size*math.sin(self.deg2rad(new_angle))), int(start_pixel[1] + self.step_size*math.cos(self.deg2rad(new_angle))), new_angle)
 
             if new_loc[0] >= self.map_dim[0] or new_loc[0] < 0:
                 continue
@@ -367,7 +369,10 @@ class AStarMapSolver():
                 self.node_index += 1
                 
                 # Update the drawing map with the latest explored node
-                self.draw_map[new_loc[0], new_loc[1]] = self.map_colors["explored"]  
+                if self.use_lines:
+                    cv2.line(self.draw_map, (start_pixel[1], start_pixel[0]), (new_loc[1], new_loc[0]), color=self.map_colors["explored"], thickness=1)
+                else:
+                    self.draw_map[new_loc[0], new_loc[1]] = self.map_colors["explored"]  
                 
                 # Write the latest frame to the video
                 # TODO: Should probably make this into a save_every_n_frames param
@@ -490,6 +495,6 @@ class AStarMapSolver():
             self.video_rec.release()
     
 if __name__ == '__main__':
-    solver = AStarMapSolver(record_video=True, c2g_weight=1)
+    solver = AStarMapSolver(record_video=True, c2g_weight=3, use_lines=True, save_every_n_frames=100)
     
     solver.findPath()
