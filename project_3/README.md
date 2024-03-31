@@ -1,4 +1,4 @@
-# Ryan O'Shea and Kyle DeGuzman ENPM661 Project 3 Part 1: A* Path Planner with Kinematic Constraints
+# Ryan O'Shea and Kyle DeGuzman ENPM661 Project 3 Part 1: A* Path Planner with Holonomic Kinematic Constraints
 Provides a class for using the A* algorithm to find the shortest path between a given start and goal point. Includes options to make it weighted A* as well. 
 
 # Contributors

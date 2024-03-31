@@ -32,12 +32,46 @@ class AStarMapSolver():
                 continue
             else:
                 break
+            
+        # Get the two rpms from the user
+        while True:
+            self.rpm1 = int(input("Enter the first rpm (10-100 recommended): "))
+            
+            if self.rpm1 < 0 or self.rpm1> 100:
+                continue
+            else:
+                break
+        while True:
+            self.rpm2 = int(input("Enter the second rpm (10-100 recommended): "))
+            
+            if self.rpm2 < 0 or self.rpm2> 100:
+                continue
+            else:
+                break
+            
+        # Robot geometric params
+        self.robot_wheel_rad = 0.033
+        self.robot_rad = .105
+        self.robot_wheel_dist =  0.160
+        
+        self.timestep = 0.1
+        
 
         self.dist_tolerance = 3
         self.angle_tolerance = 30
         
+        self.angle_increment = 30
+        self.valid_orientations = np.array([idx * self.angle_increment for idx in range(0, int(360/self.angle_increment))])
         
-        self.action_set = [-60, -30, 0, 30, 60]
+        
+        self.action_set = [[0, self.rpm1], 
+                           [self.rpm1, 0], 
+                           [self.rpm1, self.rpm1], 
+                           [0, self.rpm2], 
+                           [self.rpm2, 0], 
+                           [self.rpm2, self.rpm2], 
+                           [self.rpm1, self.rpm2], 
+                           [self.rpm2, self.rpm1]]
         
         
         self.world_map = self.makeMap()
@@ -312,11 +346,29 @@ class AStarMapSolver():
     
     def applyMoves(self, start_pixel, cost):
         for move in self.action_set:
-            new_angle = start_pixel[2] + move
+            
+            current_angle = self.deg2rad(start_pixel[2])
+            
+            x_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.cos(current_angle)
+            y_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.sin(current_angle)
+            ang_vel = self.robot_wheel_rad/self.robot_wheel_dist * (move[1] - move[0])
+            
+            new_angle = start_pixel[2] + ang_vel * self.timestep * self.step_size
             # Scale the new angle to be between 0 and 360
             new_angle = new_angle % 360
+            
+            # Bound the angle to increments of 30
+            # Get the idx of the closest valid orientation from the pre defined list by measuring how close each angle is from the new 
+            # one and grabbing the idx of the one with the minimum distance
+            closest_angle_idx = (np.abs(self.valid_orientations - new_angle)).argmin()
+            new_angle = self.valid_orientations[closest_angle_idx]
+            
+            # TODO: Calculate new x and y locations based on the calculated x and y velocities
+            new_x = (int(start_pixel[0] + self.step_size*x_vel*self.timestep))
+            new_y = (int(start_pixel[1] + self.step_size*y_vel*self.timestep))
+            
             # Create the new configuration based on step size and the new angle
-            new_loc = (int(start_pixel[0] + self.step_size*math.sin(self.deg2rad(new_angle))), int(start_pixel[1] + self.step_size*math.cos(self.deg2rad(new_angle))), new_angle)
+            new_loc = (new_x, new_y, new_angle)
 
             if new_loc[0] >= self.map_dim[0] or new_loc[0] < 0:
                 continue
