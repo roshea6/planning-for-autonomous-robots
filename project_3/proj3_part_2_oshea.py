@@ -16,7 +16,10 @@ class AStarMapSolver():
                            "start": [0, 255, 255],
                            "goal": [255, 0, 255]}
         
-        self.map_dim = (500, 1200)
+        self.map_dim = (2000, 6000)
+        
+        # Used to bin locations to the nearest location to make the search space smaller
+        self.search_loc_thresh = 50
         
         self.save_every_n_frames = save_every_n_frames
         
@@ -50,15 +53,17 @@ class AStarMapSolver():
                 break
             
         # Robot geometric params
-        self.robot_wheel_rad = 0.033
-        self.robot_rad = .105
-        self.robot_wheel_dist =  0.160
+        self.robot_wheel_rad = 33 #0.033
+        self.robot_rad = 220 #.220
+        self.robot_wheel_dist =  287 #0.287
         
-        self.timestep = 0.1
+        self.clearance += self.robot_rad
+        
+        self.timestep = 0.01
         
 
-        self.dist_tolerance = 3
-        self.angle_tolerance = 30
+        self.dist_tolerance = 200
+        self.angle_tolerance = 120
         
         self.angle_increment = 30
         self.valid_orientations = np.array([idx * self.angle_increment for idx in range(0, int(360/self.angle_increment))])
@@ -104,13 +109,13 @@ class AStarMapSolver():
         # Draw a square for the start and end nodes
         self.draw_map = cv2.rectangle(self.draw_map, 
                                       (self.start_node[1], self.start_node[0]), 
-                                      (self.start_node[1] + 3, self.start_node[0] + 3),
+                                      (self.start_node[1] + 20, self.start_node[0] + 20),
                                       color=self.map_colors["start"],
                                       thickness=-1)
         
         self.draw_map = cv2.rectangle(self.draw_map, 
                                       (self.goal_node[1], self.goal_node[0]), 
-                                      (self.goal_node[1] + 3, self.goal_node[0] + 3),
+                                      (self.goal_node[1] + 20, self.goal_node[0] + 20),
                                       color=self.map_colors["goal"],
                                       thickness=-1)
         
@@ -121,9 +126,12 @@ class AStarMapSolver():
         
         if self.record:
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            self.video_rec = cv2.VideoWriter('a_star_ryan_oshea_output.mp4', fourcc, 120.0, (self.map_dim[1], self.map_dim[0]))
+            self.video_rec = cv2.VideoWriter('a_star_ryan_oshea_output.mp4', fourcc, 120.0, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
             
-            self.video_rec.write(self.draw_map)
+            
+            write_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
+            # TODO: Make the maps smaller before writing
+            self.video_rec.write(write_map)
             
         self.path_pixels = []
         
@@ -167,8 +175,8 @@ class AStarMapSolver():
         # Rectangles
         # Rectangle 1
         # Define the top left and bottom right of the normal rectangle 
-        top_left = (100, 0)
-        bottom_right = (175, 400)
+        top_left = (1500, 0)
+        bottom_right = (1750, 1000)
         
         # First draw the clearance rectangle
         obstacle_map = cv2.rectangle(obstacle_map, 
@@ -185,8 +193,8 @@ class AStarMapSolver():
                                       color=self.map_colors["obstacle"])
         
         # Rectangle 2
-        top_left = (275, 100)
-        bottom_right = (350, 500)
+        top_left = (2500, 1000)
+        bottom_right = (2750, 2000)
         
         # First draw the clearance rectangle
         obstacle_map = cv2.rectangle(obstacle_map, 
@@ -202,90 +210,17 @@ class AStarMapSolver():
                                       thickness=-1, 
                                       color=self.map_colors["obstacle"])
         
-        # Hexagon
-        hex_origin = (650, 250)
-        hex_x_len = 130
-        hex_y_len = 150
+        obstacle_map = cv2.circle(obstacle_map, 
+                                  (4200, 800),
+                                  600 + self.clearance,
+                                  color=self.map_colors["clearance"],
+                                  thickness=-1)
         
-        # Clearance
-        # Define the hexagon vertices starting with the top center and working clockwise
-        # Might need to define manual lines for this part
-        hex_pts = np.array([[hex_origin[0], hex_origin[1] - hex_y_len - self.clearance], # top center
-                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] - hex_y_len/2 - self.clearance/2], # top right
-                   [hex_origin[0] + hex_x_len + self.clearance, hex_origin[1] + hex_y_len/2 + self.clearance/2], # bottom right
-                   [hex_origin[0], hex_origin[1] + hex_y_len + self.clearance], # bottom center
-                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] + hex_y_len/2 + self.clearance/2], # bottom left
-                   [hex_origin[0] - hex_x_len - self.clearance, hex_origin[1] - hex_y_len/2 - self.clearance/2]], np.int32) # top left
-        
-        # Draw the hexagon
-        obstacle_map = cv2.fillPoly(obstacle_map, [hex_pts], color=self.map_colors["clearance"])
-        
-        # Obstacle hexagon
-        # Define the hexagon vertices starting with the top center and working clockwise
-        hex_pts = np.array([[hex_origin[0], hex_origin[1] - hex_y_len], # top center
-                   [hex_origin[0] + hex_x_len, hex_origin[1] - hex_y_len/2], # top right
-                   [hex_origin[0] + hex_x_len, hex_origin[1] + hex_y_len/2], # bottom right
-                   [hex_origin[0], hex_origin[1] + hex_y_len], # bottom center
-                   [hex_origin[0] - hex_x_len, hex_origin[1] + hex_y_len/2], # bottom left
-                   [hex_origin[0] - hex_x_len, hex_origin[1] - hex_y_len/2]], np.int32) # top left
-        
-        # Draw the hexagon
-        obstacle_map = cv2.fillPoly(obstacle_map, [hex_pts], color=self.map_colors["obstacle"])
-        
-        # Backwards C shape
-        # Draw the 3 clearance sub rectangles that make up the shape first
-        # Top rectangle
-        c_top_top_left = (900, 50)
-        c_top_bottom_right = (1020, 125)
-        
-        # Top clearance rectangle
-        obstacle_map = cv2.rectangle(obstacle_map, 
-                                     (c_top_top_left[0]-self.clearance, c_top_top_left[1] - self.clearance), 
-                                     (c_top_bottom_right[0] + self.clearance, c_top_bottom_right[1] + self.clearance),
-                                      thickness=-1, 
-                                      color=self.map_colors["clearance"])
-        
-        # Middle clearance rectangle
-        c_middle_top_left = (1020, 50)
-        c_middle_bottom_right = (1100, 450)
-        
-        obstacle_map = cv2.rectangle(obstacle_map, 
-                                     (c_middle_top_left[0]-self.clearance, c_middle_top_left[1] - self.clearance), 
-                                     (c_middle_bottom_right[0] + self.clearance, c_middle_bottom_right[1] + self.clearance),
-                                      thickness=-1, 
-                                      color=self.map_colors["clearance"])
-        
-        c_bottom_top_left = (900, 375)
-        c_bottom_bottom_right = (1020, 450)
-        
-        # Bottom clearance rectangle
-        obstacle_map = cv2.rectangle(obstacle_map, 
-                                     (c_bottom_top_left[0]-self.clearance, c_bottom_top_left[1] - self.clearance), 
-                                     (c_bottom_bottom_right[0] + self.clearance, c_bottom_bottom_right[1] + self.clearance),
-                                      thickness=-1, 
-                                      color=self.map_colors["clearance"])
-        
-        # Obstacle rectangles
-        # Top clearance rectangle
-        obstacle_map = cv2.rectangle(obstacle_map, 
-                                     (c_top_top_left[0], c_top_top_left[1]), 
-                                     (c_top_bottom_right[0], c_top_bottom_right[1]),
-                                      thickness=-1, 
-                                      color=self.map_colors["obstacle"])
-        
-        # Middle clearance rectangle
-        obstacle_map = cv2.rectangle(obstacle_map, 
-                                     (c_middle_top_left[0], c_middle_top_left[1]), 
-                                     (c_middle_bottom_right[0], c_middle_bottom_right[1]),
-                                      thickness=-1, 
-                                      color=self.map_colors["obstacle"])
-        
-        # Bottom clearance rectangle
-        obstacle_map = cv2.rectangle(obstacle_map, 
-                                     (c_bottom_top_left[0], c_bottom_top_left[1]), 
-                                     (c_bottom_bottom_right[0], c_bottom_bottom_right[1]),
-                                      thickness=-1, 
-                                      color=self.map_colors["obstacle"])
+        obstacle_map = cv2.circle(obstacle_map, 
+                                  (4200, 800),
+                                  600,
+                                  color=self.map_colors["obstacle"],
+                                  thickness=-1)
         
         
         # cv2.imshow("Map", obstacle_map)
@@ -329,9 +264,9 @@ class AStarMapSolver():
                 break
 
         while True:
-            self.step_size = int(input("Please enter a step size value between 1 and 10: "))
+            self.step_size = int(input("Please enter a step size value between 1 and 40: "))
 
-            if self.step_size < 1 or self.step_size > 10:
+            if self.step_size < 1 or self.step_size > 40:
                 print("Invalid step size")
             else:
                 # Multiply step by 2 to account for the larger map
@@ -349,11 +284,12 @@ class AStarMapSolver():
             
             current_angle = self.deg2rad(start_pixel[2])
             
-            x_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.cos(current_angle)
-            y_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.sin(current_angle)
+            x_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.sin(current_angle)
+            y_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.cos(current_angle)
             ang_vel = self.robot_wheel_rad/self.robot_wheel_dist * (move[1] - move[0])
             
-            new_angle = start_pixel[2] + ang_vel * self.timestep * self.step_size
+            # Need to multiply the angle step by a constant to account for the angle binning
+            new_angle = start_pixel[2] + ang_vel * self.timestep * self.step_size * 300 
             # Scale the new angle to be between 0 and 360
             new_angle = new_angle % 360
             
@@ -364,11 +300,12 @@ class AStarMapSolver():
             new_angle = self.valid_orientations[closest_angle_idx]
             
             # TODO: Calculate new x and y locations based on the calculated x and y velocities
-            new_x = (int(start_pixel[0] + self.step_size*x_vel*self.timestep))
-            new_y = (int(start_pixel[1] + self.step_size*y_vel*self.timestep))
+            new_x = int(round(start_pixel[0] + self.step_size*x_vel*self.timestep, -2))
+            new_y = int(round(start_pixel[1] + self.step_size*y_vel*self.timestep, -2))
             
             # Create the new configuration based on step size and the new angle
             new_loc = (new_x, new_y, new_angle)
+            # print(new_loc)
 
             if new_loc[0] >= self.map_dim[0] or new_loc[0] < 0:
                 continue
@@ -424,7 +361,9 @@ class AStarMapSolver():
                 
                 # Write the latest frame to the video
                 if self.record and self.node_index % self.save_every_n_frames == 0:
-                    self.video_rec.write(self.draw_map)  
+                    # Make the maps smaller before writing
+                    write_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
+                    self.video_rec.write(write_map)  
                 
                 # Update the checked nodes dict with the updated now
                 self.checked_nodes[str(new_loc)] = new_node
@@ -465,27 +404,31 @@ class AStarMapSolver():
                                     color=self.map_colors["start"],
                                     thickness=-1)
             if self.record:
-                self.video_rec.write(self.draw_map) 
+                # Make the maps smaller before writing
+                write_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
+                self.video_rec.write(write_map) 
             
             
         # Draw the start and goal nodes again
         self.draw_map = cv2.rectangle(self.draw_map, 
-                                    (self.start_node[1], self.start_node[0]), 
-                                    (self.start_node[1] + 3, self.start_node[0] + 3),
-                                    color=self.map_colors["start"],
-                                    thickness=-1)
+                                      (self.start_node[1], self.start_node[0]), 
+                                      (self.start_node[1] + 20, self.start_node[0] + 20),
+                                      color=self.map_colors["start"],
+                                      thickness=-1)
         
         self.draw_map = cv2.rectangle(self.draw_map, 
-                                    (self.goal_node[1], self.goal_node[0]), 
-                                    (self.goal_node[1] + 3, self.goal_node[0] + 3),
-                                    color=self.map_colors["goal"],
-                                    thickness=-1)
+                                      (self.goal_node[1], self.goal_node[0]), 
+                                      (self.goal_node[1] + 20, self.goal_node[0] + 20),
+                                      color=self.map_colors["goal"],
+                                      thickness=-1)
         
         # Write the final frame to the video
         if self.record:
             # Write the final frame multiple times to let it show for a while
             for i in range(300):
-                self.video_rec.write(self.draw_map) 
+                # Make the maps smaller before writing
+                write_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
+                self.video_rec.write(write_map) 
             
             
     # Checks if the passed in node is within the acceptable threshold of the goal
@@ -533,14 +476,16 @@ class AStarMapSolver():
             print("UNABLE TO FIND PATH TO GOAL FROM GIVEN CONFIGURATIONS. PLEASE ENTER A NEW CONFIGURATION.")
 
         print("Total time: {} seconds".format(time.time() - start_time))
-            
-        cv2.imshow("Exploration map", self.draw_map)
-        cv2.waitKey(0)
-        
+
         if self.record:
             self.video_rec.release()
+        
+        show_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
+        cv2.imshow("Exploration map", show_map)
+        cv2.waitKey(0)
+        
     
 if __name__ == '__main__':
-    solver = AStarMapSolver(record_video=True, c2g_weight=2, use_lines=True, save_every_n_frames=600)
+    solver = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=True, save_every_n_frames=300)
     
     solver.findPath()
