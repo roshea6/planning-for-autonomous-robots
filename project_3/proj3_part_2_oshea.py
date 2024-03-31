@@ -19,7 +19,7 @@ class AStarMapSolver():
         self.map_dim = (2000, 6000)
         
         # Used to bin locations to the nearest location to make the search space smaller
-        self.search_loc_thresh = 50
+        self.search_loc_thresh = 30
         
         self.save_every_n_frames = save_every_n_frames
         
@@ -62,8 +62,8 @@ class AStarMapSolver():
         self.timestep = 0.01
         
 
-        self.dist_tolerance = 200
-        self.angle_tolerance = 120
+        self.dist_tolerance = 50
+        self.angle_tolerance = 30
         
         self.angle_increment = 30
         self.valid_orientations = np.array([idx * self.angle_increment for idx in range(0, int(360/self.angle_increment))])
@@ -299,9 +299,12 @@ class AStarMapSolver():
             closest_angle_idx = (np.abs(self.valid_orientations - new_angle)).argmin()
             new_angle = self.valid_orientations[closest_angle_idx]
             
-            # TODO: Calculate new x and y locations based on the calculated x and y velocities
-            new_x = int(round(start_pixel[0] + self.step_size*x_vel*self.timestep, -2))
-            new_y = int(round(start_pixel[1] + self.step_size*y_vel*self.timestep, -2))
+            # Calculate new x and y locations based on the calculated x and y velocities
+            # Bound these new values to the grid set by the search resolution threshold
+            new_x = start_pixel[0] + self.step_size*x_vel*self.timestep
+            new_x = int(self.search_loc_thresh * round(new_x/self.search_loc_thresh))
+            new_y = start_pixel[1] + self.step_size*y_vel*self.timestep
+            new_y = int(self.search_loc_thresh * round(new_y/self.search_loc_thresh))
             
             # Create the new configuration based on step size and the new angle
             new_loc = (new_x, new_y, new_angle)
@@ -355,7 +358,7 @@ class AStarMapSolver():
                 
                 # Update the drawing map with the latest explored node
                 if self.use_lines:
-                    cv2.line(self.draw_map, (start_pixel[1], start_pixel[0]), (new_loc[1], new_loc[0]), color=self.map_colors["explored"], thickness=1)
+                    cv2.line(self.draw_map, (start_pixel[1], start_pixel[0]), (new_loc[1], new_loc[0]), color=self.map_colors["explored"], thickness=4)
                 else:
                     self.draw_map[new_loc[0], new_loc[1]] = self.map_colors["explored"]  
                 
