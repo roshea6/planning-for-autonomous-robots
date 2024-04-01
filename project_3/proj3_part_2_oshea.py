@@ -20,6 +20,10 @@ class AStarMapSolver():
         
         # Used to bin locations to the nearest location to make the search space smaller
         self.search_loc_thresh = 30
+        self.search_ang_thresh = 30
+        
+        # Number of intermediate points to generate for the curve
+        self.num_int_points = 5
         
         self.save_every_n_frames = save_every_n_frames
         
@@ -130,7 +134,6 @@ class AStarMapSolver():
             
             
             write_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
-            # TODO: Make the maps smaller before writing
             self.video_rec.write(write_map)
             
         self.path_pixels = []
@@ -264,9 +267,9 @@ class AStarMapSolver():
                 break
 
         while True:
-            self.step_size = int(input("Please enter a step size value between 1 and 40: "))
+            self.step_size = int(input("Please enter a step size value between 1 and 3: "))
 
-            if self.step_size < 1 or self.step_size > 40:
+            if self.step_size < 1 or self.step_size > 3:
                 print("Invalid step size")
             else:
                 # Multiply step by 2 to account for the larger map
@@ -279,25 +282,16 @@ class AStarMapSolver():
     def deg2rad(self, deg):
         return (math.pi/180) * deg
     
+    def rad2deg(self, rad):
+        return rad * 180/math.pi
+    
     def applyMoves(self, start_pixel, cost):
         for move in self.action_set:
-            
+            # print(move)
             current_angle = self.deg2rad(start_pixel[2])
             
             x_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.sin(current_angle)
             y_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.cos(current_angle)
-            ang_vel = self.robot_wheel_rad/self.robot_wheel_dist * (move[1] - move[0])
-            
-            # Need to multiply the angle step by a constant to account for the angle binning
-            new_angle = start_pixel[2] + ang_vel * self.timestep * self.step_size * 300 
-            # Scale the new angle to be between 0 and 360
-            new_angle = new_angle % 360
-            
-            # Bound the angle to increments of 30
-            # Get the idx of the closest valid orientation from the pre defined list by measuring how close each angle is from the new 
-            # one and grabbing the idx of the one with the minimum distance
-            closest_angle_idx = (np.abs(self.valid_orientations - new_angle)).argmin()
-            new_angle = self.valid_orientations[closest_angle_idx]
             
             # Calculate new x and y locations based on the calculated x and y velocities
             # Bound these new values to the grid set by the search resolution threshold
@@ -306,9 +300,53 @@ class AStarMapSolver():
             new_y = start_pixel[1] + self.step_size*y_vel*self.timestep
             new_y = int(self.search_loc_thresh * round(new_y/self.search_loc_thresh))
             
+            ang_vel = self.robot_wheel_rad/self.robot_wheel_dist * (move[1] - move[0])
+            new_angle = start_pixel[2] + ang_vel * self.timestep * self.step_size * 100
+            
+            new_angle = new_angle % 360
+            
+            new_angle = self.search_ang_thresh * round(new_angle/self.search_ang_thresh)
+            
+            # int_x_list = []
+            # int_y_list = []
+            # int_angle = current_angle
+            
+            # int_x_list.append(start_pixel[0])
+            # int_y_list.append(start_pixel[1])
+            
+            # # Calculate the intermediate points and angles
+            # for idx in range(self.num_int_points):
+            #     int_x_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.cos(int_angle)
+            #     int_y_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.sin(int_angle)
+                
+            #     int_x = int(start_pixel[0] + self.step_size*int_x_vel*(self.timestep/self.num_int_points)*idx)
+            #     int_y = int(start_pixel[1] + self.step_size*int_y_vel*(self.timestep/self.num_int_points)*idx)
+            #     int_angle = start_pixel[2] + ang_vel * (self.timestep/self.num_int_points)*idx * self.step_size * 100
+            #     print(int_angle)
+            #     # Scale the new angle to be between 0 and 360
+            #     # int_angle = int_angle % 360
+                
+            #     # Check if we're in an obstacle or clearance pixel
+            #     # if list(self.world_map[int_x, int_y]) == self.map_colors["obstacle"] or list(self.world_map[int_x, int_y]) == self.map_colors["clearance"]:
+            #     #     # If we are don't add it to the list of new nodes
+            #     #     # print("HIT OBSTACLE")
+            #     #     continue
+                
+            #     int_x_list.append(int_x)
+            #     int_y_list.append(int_y)
+                
+            # int_x_list.append(new_x)
+            # int_y_list.append(new_y)
+            
+            # print(int_x_list)
+            # print(int_y_list)
+            # print()
+            
             # Create the new configuration based on step size and the new angle
             new_loc = (new_x, new_y, new_angle)
+            # print(start_pixel[0], start_pixel[1], start_pixel[2])
             # print(new_loc)
+            # print()
 
             if new_loc[0] >= self.map_dim[0] or new_loc[0] < 0:
                 continue
@@ -359,6 +397,8 @@ class AStarMapSolver():
                 # Update the drawing map with the latest explored node
                 if self.use_lines:
                     cv2.line(self.draw_map, (start_pixel[1], start_pixel[0]), (new_loc[1], new_loc[0]), color=self.map_colors["explored"], thickness=4)
+                    # curve = np.column_stack((np.array(int_y_list), np.array(int_x_list)))
+                    # cv2.polylines(self.draw_map, np.int32([curve]), False, self.map_colors["explored"], thickness=4)
                 else:
                     self.draw_map[new_loc[0], new_loc[1]] = self.map_colors["explored"]  
                 
@@ -374,6 +414,9 @@ class AStarMapSolver():
                 
                 # Add the new node to the priority queue
                 self.open_list.put(new_node)
+                
+            # cv2.imshow("Map", self.draw_map)
+            # cv2.waitKey(1)
         
     # backtrack from the goal node to trace a path of pixels 
     def backtrack(self, goal_node):
@@ -400,12 +443,27 @@ class AStarMapSolver():
         # Animate the path
         self.path_pixels.reverse()
         
-        for pixel in self.path_pixels:
-            self.draw_map = cv2.rectangle(self.draw_map, 
-                                    (pixel[1], pixel[0]), 
-                                    (pixel[1] + 3, pixel[0] + 3),
-                                    color=self.map_colors["start"],
-                                    thickness=-1)
+        for idx, pixel in enumerate(self.path_pixels):
+            if self.use_lines:
+                # Check if it's the final node in the path
+                if idx == len(self.path_pixels) - 1:
+                    # print("Final path node reached")
+                    self.draw_map = cv2.rectangle(self.draw_map, 
+                                        (pixel[1], pixel[0]), 
+                                        (pixel[1] + 20, pixel[0] + 20),
+                                        color=self.map_colors["path"],
+                                        thickness=-1)
+                else:
+                    # print("Drawing path")
+                    next_pix = self.path_pixels[idx+1]
+                    self.draw_map = cv2.line(self.draw_map, (pixel[1], pixel[0]), (next_pix[1], next_pix[0]), color=self.map_colors["start"], thickness=8)
+                    
+            else:
+                self.draw_map = cv2.rectangle(self.draw_map, 
+                                        (pixel[1], pixel[0]), 
+                                        (pixel[1] + 20, pixel[0] + 20),
+                                        color=self.map_colors["path"],
+                                        thickness=-1)
             if self.record:
                 # Make the maps smaller before writing
                 write_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
@@ -489,6 +547,6 @@ class AStarMapSolver():
         
     
 if __name__ == '__main__':
-    solver = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=True, save_every_n_frames=300)
+    solver = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=True, save_every_n_frames=500)
     
     solver.findPath()
