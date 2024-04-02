@@ -23,7 +23,9 @@ class AStarMapSolver():
         self.search_ang_thresh = 30
         
         # Number of intermediate points to generate for the curve
-        self.num_int_points = 5
+        self.num_int_points = 10
+        self.int_x_exp_vals = (np.linspace(0.0, 1.0, self.num_int_points)**2)
+        self.int_y_exp_vals = (np.linspace(0.0, 1.0, self.num_int_points))
         
         self.save_every_n_frames = save_every_n_frames
         
@@ -35,7 +37,7 @@ class AStarMapSolver():
         while True:
             self.clearance = int(input("Enter the clearance value in mm (5-15 recommended): "))
             
-            if self.clearance < 0 or self.clearance > 30:
+            if self.clearance < 0 or self.clearance > 50:
                 continue
             else:
                 break
@@ -307,40 +309,13 @@ class AStarMapSolver():
             
             new_angle = self.search_ang_thresh * round(new_angle/self.search_ang_thresh)
             
-            # int_x_list = []
-            # int_y_list = []
-            # int_angle = current_angle
+            # Calculate the list of intermediate x and y pairs for the curved path
+            # Currently just use an exponential curve between the start and end point which looks correct
+            x_diff = new_x - start_pixel[0]
+            y_diff = new_y - start_pixel[1]
             
-            # int_x_list.append(start_pixel[0])
-            # int_y_list.append(start_pixel[1])
-            
-            # # Calculate the intermediate points and angles
-            # for idx in range(self.num_int_points):
-            #     int_x_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.cos(int_angle)
-            #     int_y_vel = self.robot_wheel_rad/2 * (move[0] + move[1]) * math.sin(int_angle)
-                
-            #     int_x = int(start_pixel[0] + self.step_size*int_x_vel*(self.timestep/self.num_int_points)*idx)
-            #     int_y = int(start_pixel[1] + self.step_size*int_y_vel*(self.timestep/self.num_int_points)*idx)
-            #     int_angle = start_pixel[2] + ang_vel * (self.timestep/self.num_int_points)*idx * self.step_size * 100
-            #     print(int_angle)
-            #     # Scale the new angle to be between 0 and 360
-            #     # int_angle = int_angle % 360
-                
-            #     # Check if we're in an obstacle or clearance pixel
-            #     # if list(self.world_map[int_x, int_y]) == self.map_colors["obstacle"] or list(self.world_map[int_x, int_y]) == self.map_colors["clearance"]:
-            #     #     # If we are don't add it to the list of new nodes
-            #     #     # print("HIT OBSTACLE")
-            #     #     continue
-                
-            #     int_x_list.append(int_x)
-            #     int_y_list.append(int_y)
-                
-            # int_x_list.append(new_x)
-            # int_y_list.append(new_y)
-            
-            # print(int_x_list)
-            # print(int_y_list)
-            # print()
+            int_x_list = start_pixel[0] + (x_diff * self.int_x_exp_vals)
+            int_y_list = start_pixel[1] + (y_diff * self.int_y_exp_vals)
             
             # Create the new configuration based on step size and the new angle
             new_loc = (new_x, new_y, new_angle)
@@ -396,9 +371,9 @@ class AStarMapSolver():
                 
                 # Update the drawing map with the latest explored node
                 if self.use_lines:
-                    cv2.line(self.draw_map, (start_pixel[1], start_pixel[0]), (new_loc[1], new_loc[0]), color=self.map_colors["explored"], thickness=4)
-                    # curve = np.column_stack((np.array(int_y_list), np.array(int_x_list)))
-                    # cv2.polylines(self.draw_map, np.int32([curve]), False, self.map_colors["explored"], thickness=4)
+                    # cv2.line(self.draw_map, (start_pixel[1], start_pixel[0]), (new_loc[1], new_loc[0]), color=self.map_colors["explored"], thickness=4)
+                    curve = np.column_stack((np.array(int_y_list), np.array(int_x_list)))
+                    cv2.polylines(self.draw_map, np.int32([curve]), False, self.map_colors["explored"], thickness=4)
                 else:
                     self.draw_map[new_loc[0], new_loc[1]] = self.map_colors["explored"]  
                 
@@ -416,7 +391,7 @@ class AStarMapSolver():
                 self.open_list.put(new_node)
                 
             # cv2.imshow("Map", self.draw_map)
-            # cv2.waitKey(1)
+            # cv2.waitKey(0)
         
     # backtrack from the goal node to trace a path of pixels 
     def backtrack(self, goal_node):
@@ -456,6 +431,14 @@ class AStarMapSolver():
                 else:
                     # print("Drawing path")
                     next_pix = self.path_pixels[idx+1]
+                    # x_diff = next_pix[0] - pixel[0]
+                    # y_diff = next_pix[1] - pixel[1]
+                    
+                    # int_x_list = pixel[0] + (x_diff * self.int_x_exp_vals)
+                    # int_y_list = pixel[1] + (y_diff * self.int_y_exp_vals)
+                    
+                    # curve = np.column_stack((np.array(int_y_list), np.array(int_x_list)))
+                    # cv2.polylines(self.draw_map, np.int32([curve]), False, self.map_colors["path"], thickness=4)
                     self.draw_map = cv2.line(self.draw_map, (pixel[1], pixel[0]), (next_pix[1], next_pix[0]), color=self.map_colors["start"], thickness=8)
                     
             else:
