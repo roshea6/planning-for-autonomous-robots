@@ -27,6 +27,8 @@ class AStarMapSolver():
         self.int_x_exp_vals = (np.linspace(0.0, 1.0, self.num_int_points)**2)
         self.int_y_exp_vals = (np.linspace(0.0, 1.0, self.num_int_points))
         
+        self.int_check_points = np.array([0.25, 0.5, 0.75])
+        
         self.save_every_n_frames = save_every_n_frames
         
         self.c2g_weight = c2g_weight
@@ -289,6 +291,7 @@ class AStarMapSolver():
     
     def applyMoves(self, start_pixel, cost):
         for move in self.action_set:
+            valid_line = True
             # print(move)
             current_angle = self.deg2rad(start_pixel[2])
             
@@ -316,6 +319,18 @@ class AStarMapSolver():
             
             int_x_list = start_pixel[0] + (x_diff * self.int_x_exp_vals)
             int_y_list = start_pixel[1] + (y_diff * self.int_y_exp_vals)
+            
+            int_check_x_list = start_pixel[0] + (x_diff * self.int_check_points)
+            int_check_y_list = start_pixel[1] + (y_diff * self.int_check_points)
+            
+            # Check if any of the intermediate pairs land in the obstacle or clearance
+            for int_x, int_y in zip(int_check_x_list, int_check_y_list):
+                if list(self.world_map[int(int_x), int(int_y)]) == self.map_colors["obstacle"] or list(self.world_map[int(int_x), int(int_y)]) == self.map_colors["clearance"]:
+                    valid_line = False
+                    break
+                
+            if valid_line == False:
+                continue
             
             # Create the new configuration based on step size and the new angle
             new_loc = (new_x, new_y, new_angle)
@@ -530,6 +545,6 @@ class AStarMapSolver():
         
     
 if __name__ == '__main__':
-    solver = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=True, save_every_n_frames=500)
+    solver = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=True, save_every_n_frames=100)
     
     solver.findPath()
