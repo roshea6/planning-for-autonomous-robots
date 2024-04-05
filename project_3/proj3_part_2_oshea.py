@@ -103,7 +103,7 @@ class AStarMapSolver(Node):
         
         self.node_index = 0
         
-        node = (0, self.node_index, self.start_node, self.start_node, 0)
+        node = (0, self.node_index, self.start_node, self.start_node, 0, [0, 0])
         
         self.open_list = PriorityQueue()
         
@@ -151,6 +151,7 @@ class AStarMapSolver(Node):
             self.video_rec.write(write_map)
             
         self.path_pixels = []
+        self.path_commands = []
         
         self.goal_found = False
     
@@ -316,6 +317,9 @@ class AStarMapSolver(Node):
             new_y = int(self.search_loc_thresh * round(new_y/self.search_loc_thresh))
             
             ang_vel = self.robot_wheel_rad/self.robot_wheel_dist * (move[1] - move[0])
+
+            # print(x_vel, y_vel, ang_vel)
+
             new_angle = start_pixel[2] + ang_vel * self.timestep * self.step_size * 100
             
             new_angle = new_angle % 360
@@ -380,7 +384,7 @@ class AStarMapSolver(Node):
                 # If the new found cost is less than the existing cost then update the node with the new cost and 
                 # parent pixel that gives it the lower cost
                 if total_cost < existing_cost:
-                    updated_node = (total_cost, existing_node[1], start_pixel, existing_node[3], cost_to_come)
+                    updated_node = (total_cost, existing_node[1], start_pixel, existing_node[3], cost_to_come, [x_vel, y_vel, ang_vel])
                     
                     # Update the checked nodes dict with the updated now
                     self.checked_nodes[str(new_loc)] = updated_node
@@ -391,7 +395,7 @@ class AStarMapSolver(Node):
                  
             # Otherwise add the new pixel to the checked nodes and pixel locations we're tracking   
             else:
-                new_node = (total_cost, self.node_index, start_pixel, new_loc, cost_to_come)
+                new_node = (total_cost, self.node_index, start_pixel, new_loc, cost_to_come, [x_vel, y_vel, ang_vel])
                 self.node_index += 1
                 
                 # Update the drawing map with the latest explored node
@@ -421,8 +425,11 @@ class AStarMapSolver(Node):
     # backtrack from the goal node to trace a path of pixels 
     def backtrack(self, goal_node):
         pix_loc = goal_node[3]
+        move = goal_node[5]
+
         
         self.path_pixels.append(pix_loc)
+        self.path_commands.append(move)
         
         # Loop through the parent nodes until we get back to the start location
         while not pix_loc == self.start_node:
@@ -434,14 +441,17 @@ class AStarMapSolver(Node):
             
             # Grab the next pixel from the current node's parent pixel
             pix_loc = prev_node[2]
+            move = prev_node[5]
             
             # print(pix_loc)
             
             # Save the pixel so we can trace it later
             self.path_pixels.append(pix_loc)
+            self.path_commands.append(move)
             
         # Animate the path
         self.path_pixels.reverse()
+        self.path_commands.reverse()
         
         for idx, pixel in enumerate(self.path_pixels):
             if self.use_lines:
@@ -552,6 +562,36 @@ class AStarMapSolver(Node):
         show_map = cv2.resize(self.draw_map, (int(self.map_dim[1]/4), int(self.map_dim[0]/4)))
         cv2.imshow("Exploration map", show_map)
         cv2.waitKey(0)
+
+        # Loop through the saved path commands and execute each one of them
+        for command in self.path_commands:
+            # Extract the individual velocity components
+            # Convert from mm to m
+            x_vel = -command[0]/(11000)
+            y_vel = command[1]/(11000)
+            ang_vel = -self.deg2rad(command[2]*5)
+
+            # print(command)
+
+            total_vel = math.sqrt(x_vel**2 + y_vel**2)
+
+            # Create a blank message and populate it
+            twist_msg = Twist()
+
+            twist_msg.linear.x = total_vel
+            # twist_msg.linear.y = y_vel
+            twist_msg.angular.z = ang_vel
+
+            # print(twist_msg)
+
+            print("({}, {})".format(total_vel, ang_vel))
+
+            self.vel_pub.publish(twist_msg)
+
+            time.sleep(self.timestep*100)
+
+        print(len(self.path_commands))
+
         
     
 def main(args=None):
