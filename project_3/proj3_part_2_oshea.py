@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
 import cv2
 import numpy as np
 import copy
@@ -5,8 +11,12 @@ from queue import PriorityQueue
 import math
 import time
 
-class AStarMapSolver():
+class AStarMapSolver(Node):
     def __init__(self, record_video=False, c2g_weight=1, use_lines=False, save_every_n_frames=500):
+        super().__init__('a_star_navigation_node')
+
+        self.vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+
         # Define the map colors
         self.map_colors = {"obstacle": [0, 0, 255],
                            "clearance": [0, 255, 0],
@@ -544,7 +554,14 @@ class AStarMapSolver():
         cv2.waitKey(0)
         
     
+def main(args=None):
+    rclpy.init(args=args)
+    node = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=True, save_every_n_frames=100)
+    try:
+        node.findPath()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()    
+
 if __name__ == '__main__':
-    solver = AStarMapSolver(record_video=True, c2g_weight=1, use_lines=True, save_every_n_frames=100)
-    
-    solver.findPath()
+    main()
