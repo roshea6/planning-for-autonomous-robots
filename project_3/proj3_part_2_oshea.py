@@ -29,8 +29,8 @@ class AStarMapSolver(Node):
         self.map_dim = (2000, 6000)
         
         # Used to bin locations to the nearest location to make the search space smaller
-        self.search_loc_thresh = 30
-        self.search_ang_thresh = 30
+        self.search_loc_thresh = 50
+        self.search_ang_thresh = 10
         
         # Number of intermediate points to generate for the curve
         self.num_int_points = 10
@@ -47,23 +47,23 @@ class AStarMapSolver(Node):
         
         # Clearance in milimeters
         while True:
-            self.clearance = int(input("Enter the clearance value in mm (5-15 recommended): "))
+            self.clearance = int(input("Enter the clearance value in mm (5-50 recommended): "))
             
-            if self.clearance < 0 or self.clearance > 50:
+            if self.clearance < 0 or self.clearance > 70:
                 continue
             else:
                 break
             
         # Get the two rpms from the user
         while True:
-            self.rpm1 = int(input("Enter the first rpm (10-100 recommended): "))
+            self.rpm1 = int(input("Enter the first rpm (30-70 recommended): "))
             
             if self.rpm1 < 0 or self.rpm1> 100:
                 continue
             else:
                 break
         while True:
-            self.rpm2 = int(input("Enter the second rpm (10-100 recommended): "))
+            self.rpm2 = int(input("Enter the second rpm (30-70 recommended): "))
             
             if self.rpm2 < 0 or self.rpm2> 100:
                 continue
@@ -567,9 +567,9 @@ class AStarMapSolver(Node):
         for command in self.path_commands:
             # Extract the individual velocity components
             # Convert from mm to m
-            x_vel = -command[0]/(11000)
-            y_vel = command[1]/(11000)
-            ang_vel = -self.deg2rad(command[2]*5)
+            x_vel = -command[0]/(14000)
+            y_vel = command[1]/(14000)
+            ang_vel = -self.deg2rad(command[2]*7)
 
             # print(command)
 
@@ -584,13 +584,21 @@ class AStarMapSolver(Node):
 
             # print(twist_msg)
 
-            print("({}, {})".format(total_vel, ang_vel))
+            print("(X Vel: {}, Ang Vel: {})".format(total_vel, ang_vel))
 
             self.vel_pub.publish(twist_msg)
 
-            time.sleep(self.timestep*100)
+            time.sleep(self.timestep*110)
 
-        print(len(self.path_commands))
+        # Create a final message with 0 vel and publish it to stop the robot
+        twist_msg = Twist()
+
+        twist_msg.linear.x = 0.0
+        twist_msg.angular.z = 0.0
+
+        self.vel_pub.publish(twist_msg)
+
+        # print(len(self.path_commands))
 
         
     
