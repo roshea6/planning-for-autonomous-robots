@@ -1,0 +1,27 @@
+// See https://aka.ms/vscode-remote/devcontainer.json for format details.
+{
+	"name": "proj4_container",
+	"image": "project4",
+	"runArgs": [
+		"--network=host",
+		"--volume=/mnt/wslg:/mnt/wslg",
+		"--ipc=host",
+		"--privileged",
+		"--env=DISPLAY", // Possibly needed for display forwarding?
+		"--env=QT_X11_NO_MITSHM=1", // Possibly needed for display forwarding? Might not be needed
+		"--pid=host"
+         //?
+		// uncomment to use intel iGPU
+		// "--device=/dev/dri"
+	],
+	"containerEnv": {
+		"DISPLAY": "host.docker.intenal:0" // Needed for GUI try ":0" for windows
+        // "LOCAL_USER_ID": "1001",
+		// "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+		// "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
+		// "PULSE_SERVER": "${localEnv:PULSE_SERVER}",
+		// "LIBGL_ALWAYS_SOFTWARE": "1" // Needed for software rendering of opengl
+	},
+	"mounts": ["source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"]
+
+}
